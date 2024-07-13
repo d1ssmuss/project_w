@@ -4,6 +4,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.IO;
 using UnityEngine.SceneManagement;
 
 
@@ -21,18 +22,18 @@ public class GameController : MonoBehaviour
     public TMP_Text _questionText;
 
     [Header("Answers")]
-    [SerializeField] private Button[] _answerButtons;
-    private TMP_Text[] _answerButtonsText;
+    public Button[] _answerButtons;
+    public TMP_Text[] _answerButtonsText;
 
     [Header("Tips")]
-    [SerializeField] private Button _tip50; // 50:50
-    [SerializeField] private Button _tipCall; // звонок другу
-    [SerializeField] private Button _tiePeople; // Помощь зала
-    [SerializeField] private Button _tiex2; // право на ошибку
+    public Button _tip50; // 50:50
+    public Button _tipCall; // звонок другу
+    public Button _tiePeople; // Помощь зала
+    public Button _tiex2; // право на ошибку
 
 
     [Header("Questions")]
-    [SerializeField] private Question[] _questions;
+    public Question[] _questions;
 
 
     [Header("Components")]
@@ -44,12 +45,19 @@ public class GameController : MonoBehaviour
     public Image sum_bar;
     public Text amount_bar;
     public Sound_game sound_game;
+    public use_x2 lifeline_x2;
+
+    public bool flashok = true;
+
+    // Суммы
+    // Создаю переменную для суммы
+    public string Non_negotiable_sum = "0"; 
+
 
     /*
      * Переменные
      */
     private string[] total_prize = { // массив используется для плашки суммы
-        "0",
         "500",
         "1000",
         "2000",
@@ -121,6 +129,11 @@ public class GameController : MonoBehaviour
         Answ_b.enabled = false;
         Answ_c.enabled = false;
         Answ_d.enabled = false;
+        /*for (int i = 0; i < _answerButtons.Length; i++)
+        {
+            _answerButtons[i].enabled = true;
+        }
+        */
     }
     private void EndGame()
     {
@@ -131,11 +144,30 @@ public class GameController : MonoBehaviour
     public byte OnButtonClick(byte index)
     {
         int count_question = sound_game.count_q;
+        Answ_a.color = Color.black;
         var correctIndex = _questions[_currentIndex].CorrectIndex;
         AudioSource final_otvet = sound_game.sound_final_answer[count_question];
         final_otvet.Play();
-        if (index == correctIndex)
+        Debug.Log("Текущий индекс: " + index + " " + "Индекс правильного ответа:" +  correctIndex);
+        /*switch (index)
         {
+            case 0:
+                Answ_a.color = Color.black;
+                break;
+            case 1:
+                Answ_b.color = Color.black;
+                break;
+            case 2:
+                Answ_c.color = Color.black;
+                break;
+            case 3:
+                Answ_d.color = Color.black;
+                break;
+        }
+        */
+        if ((index == correctIndex))
+        {
+            flashok = false;
             _currentIndex++;
             if (_currentIndex >= _questions.Length)
             {
@@ -160,10 +192,25 @@ public class GameController : MonoBehaviour
         }
         else
         {
+            switch (correctIndex)
+            {
+                case 0:
+                    Answ_a.color = Color.white;
+                    break;
+                case 1:
+                    Answ_b.color = Color.white;
+                    break;
+                case 2:
+                    Answ_c.color = Color.white;
+                    break;
+                case 3:
+                    Answ_d.color = Color.white;
+                    break;
+            }
             // SceneManager.LoadScene(SceneManager.GetActiveScene().name); // функция перезагружает сцену
             AudioSource Round_list_co = sound_game.Round_list[count_question];
             Round_list_co.Stop(); // останавливаем звук, который будет играть в течении раунда
-            StartCoroutine(Amount_Bar(count_question));
+            StartCoroutine(Player_lose(count_question));
             //EndGame();
         }
         return correctIndex; // для чего нужен?
@@ -179,8 +226,8 @@ public class GameController : MonoBehaviour
     {
         for (byte i = 0; i < _answerButtons.Length; i++)
         {
-            var index = i;
-            _answerButtons[i].onClick.AddListener(() => OnButtonClick(index));
+            byte index = i;
+            _answerButtons[i].onClick.AddListener(() => OnButtonClick(index)); // onbuttonclick(скобки)
         }
     }
     private void Start()
@@ -193,7 +240,7 @@ public class GameController : MonoBehaviour
     private void Test_func(int count)
     {
         // вызываю функцию start из друго скрипта
-        sound_game.Myfunc();
+        sound_game.Myfunc(); // зачем здесь эта функция?
         sound_game.func(count);
     }
 
@@ -205,19 +252,40 @@ public class GameController : MonoBehaviour
         AudioSource final_otvet = sound_game.sound_final_answer[count];
         Debug.Log("Сработала функция Round_list_0.Stop() gamecontroller " + count);
         final_otvet.Stop();
+
+
         _questionText.enabled = false;
         label_question.enabled = false;
         Answ_a.enabled = false;
         Answ_b.enabled = false;
         Answ_c.enabled = false;
         Answ_d.enabled = false;
+        
+
+        for (int i = 0; i < _answerButtons.Length; i++)
+        {
+            _answerButtons[i].enabled = false;
+        }
         // появляется вектор -> плашка суммы (при помощи вектора)
         sum_bar.rectTransform.anchoredPosition = new Vector2(6.0916e-05f, -308.01f);
+        Image x2 = lifeline_x2.x2_pos;
+        x2.rectTransform.anchoredPosition = new Vector2(833.79f, -682);
         amount_bar.text = total_prize[count];
         yield return new WaitForSeconds(1f);
         sum_bar.rectTransform.anchoredPosition = new Vector2(978.55f, -1483);
         Test_func(count);
         SetQuestion();
+        flashok = true;
+        yield break;
+    }
+
+    IEnumerator Player_lose(int count)
+    {
+        Debug.Log("Сработала фукция Player_lose");
+        yield return new WaitForSeconds(4.5f);
+        // играет звук покидания игрока
+        SceneManager.LoadScene("display_lose");
+        yield break;
     }
 
 }
